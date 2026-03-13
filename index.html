@@ -3,27 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atlas Fitness</title>
+    <title>Atlas Fitness AI</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { margin: 0; background: #050505; color: #eee; font-family: monospace; }
+        .root-container { max-width: 420px; margin: 0 auto; height: 100vh; display: flex; flexDirection: column; border-left: 1px solid #111; border-right: 1px solid #111; position: relative; }
+        input { background: #111; border: 1px solid #222; padding: 14px; color: #fff; borderRadius: 12px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { background: #b8f243; color: #000; border: none; padding: 16px; borderRadius: 12px; fontWeight: 900; cursor: pointer; width: 100%; }
+        .card { background: #0f0f0f; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #1a1a1a; }
+        .atlas-msg { background: #111; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid #b8f243; }
+        .user-msg { background: #b8f243; color: #000; padding: 12px; border-radius: 12px; margin-bottom: 10px; align-self: flex-end; margin-left: 20%; }
+        .nav { height: 70px; display: flex; background: #0a0a0a; border-top: 1px solid #111; position: absolute; bottom: 0; width: 100%; }
+        .nav-btn { flex: 1; background: none; border: none; font-size: 24px; color: #444; cursor: pointer; }
+    </style>
 </head>
-<body style="margin: 0; background: #050505; color: white; font-family: sans-serif;">
+<body>
     <div id="root"></div>
-    
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0/client"
-      }
-    }
-    </script>
 
-    <script type="module">
-        import React from 'react'
-        import ReactDOM from 'react-dom'
-        import App from './index.js'
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-        const root = ReactDOM.createRoot(document.getElementById('root'))
-        root.render(React.createElement(App))
+        function App() {
+            const [ekran, setEkran] = useState("onboarding");
+            const [profil, setProfil] = useState({ isim: "", kilo: 65 });
+            const [mesajlar, setMesajlar] = useState([]);
+            const [input, setInput] = useState("");
+            const [yukleniyor, setYukleniyor] = useState(false);
+
+            async function atlasSor() {
+                if (!input.trim()) return;
+                const yeniMesajlar = [...mesajlar, { rol: "user", metin: input }];
+                setMesajlar(yeniMesajlar);
+                setInput("");
+                setYukleniyor(true);
+
+                try {
+                    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer gsk_gsk_4qGr2weOuq8SaXBsAfaVWGdyb3FYxWF6ZGJqyUTHHsqCkCdQTFCM`, // BURAYA KENDİ KEYİNİ YAPIŞTIR
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            model: "llama3-8b-8192",
+                            messages: [{ role: "system", content: "Sen Atlas adında bir fitness koçusun. Kısa cevap ver." }, 
+                                       ...yeniMesajlar.map(m => ({ role: m.rol === "user" ? "user" : "assistant", content: m.metin }))]
+                        })
+                    });
+                    const data = await res.json();
+                    const cevap = data.choices[0].message.content;
+                    setMesajlar(prev => [...prev, { rol: "atlas", metin: cevap }]);
+                } catch (e) {
+                    setMesajlar(prev => [...prev, { rol: "atlas", metin: "Sinyal hatası! Ama disiplin tam." }]);
+                }
+                setYukleniyor(false);
+            }
+
+            if (ekran === "onboarding") {
+                return (
+                    <div className="root-container" style={{padding: '40px', justifyContent: 'center'}}>
+                        <h1 style={{color: '#b8f243', textAlign: 'center'}}>⚡ ATLAS v1.0</h1>
+                        <input placeholder="İsminiz" onChange={e => setProfil({...profil, isim: e.target.value})} />
+                        <button onClick={() => setEkran("dashboard")}>SİSTEMİ BAŞLAT</button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="root-container">
+                    <div style={{padding: '20px', flex: 1, overflowY: 'auto', marginBottom: '70px'}}>
+                        {ekran === "dashboard" ? (
+                            <div className="card">
+                                <h3>Merhaba, {profil.isim}! ⚡</h3>
+                                <p>Bugün antrenman günün. Hazır mısın?</p>
+                            </div>
+                        ) : (
+                            <div>
+                                {mesajlar.map((m, i) => (
+                                    <div key={i} className={m.rol === 'atlas' ? 'atlas-msg' : 'user-msg'}>{m.metin}</div>
+                                ))}
+                                {yukleniyor && <div className="atlas-msg">Atlas düşünüyor...</div>}
+                                <div style={{display:'flex', gap: '5px'}}>
+                                    <input value={input} onChange={e => setInput(e.target.value)} placeholder="Sor..." />
+                                    <button style={{width: '60px'}} onClick={atlasSor}>{'>'}</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="nav">
+                        <button className="nav-btn" style={{color: ekran === 'dashboard' ? '#b8f243' : '#444'}} onClick={() => setEkran("dashboard")}>🏠</button>
+                        <button className="nav-btn" style={{color: ekran === 'chat' ? '#b8f243' : '#444'}} onClick={() => setEkran("chat")}>⚡</button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
