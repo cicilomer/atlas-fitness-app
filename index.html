@@ -3,38 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atlas Fitness AI - Ultra Stable</title>
+    <title>Atlas Fitness AI - Secure</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { margin: 0; background: #050505; color: #eee; font-family: sans-serif; height: 100vh; }
-        .app { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background: #000; border: 1px solid #111; }
+        body { margin: 0; background: #050505; color: #eee; font-family: sans-serif; }
+        .app { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background: #000; }
         .header { padding: 15px; text-align: center; border-bottom: 1px solid #111; color: #b8f243; font-weight: bold; }
-        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #050505; }
-        .msg { padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
+        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px 16px; border-radius: 12px; max-width: 85%; font-size: 15px; }
         .atlas { background: #111; border-left: 4px solid #b8f243; align-self: flex-start; }
         .user { background: #b8f243; color: #000; align-self: flex-end; font-weight: bold; }
         .input-box { padding: 15px; display: flex; gap: 8px; background: #0a0a0a; border-top: 1px solid #111; }
         input { flex: 1; background: #151515; border: 1px solid #222; padding: 12px; color: #fff; border-radius: 8px; outline: none; }
         button { background: #b8f243; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .loading { opacity: 0.5; font-style: italic; font-size: 12px; color: #b8f243; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState } = React;
 
         function App() {
-            const [msgs, setMsgs] = useState([{r: "a", t: "Sistem güncellendi. Hazırım dostum, ne soracaksın?"}]);
+            const [msgs, setMsgs] = useState([{r: "a", t: "Sistem güvenli moda geçti. Atlas göreve hazır!"}]);
             const [val, setVal] = useState("");
             const [loading, setLoading] = useState(false);
-            const chatRef = useRef(null);
-
-            useEffect(() => {
-                if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-            }, [msgs]);
 
             const send = async () => {
                 if(!val.trim() || loading) return;
@@ -44,32 +38,29 @@
                 setLoading(true);
 
                 try {
+                    // DİKKAT: Anahtar burada değil, Vercel Dashboard'daki VITE_GROQ_API_KEY'den gelecek.
+                    // Eğer yerelde test ediyorsan tırnak içine anahtarı geçici yazabilirsin.
+                    const apiKey = "VITE_GROQ_API_KEY_PLACEHOLDER"; 
+
                     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                         method: "POST",
                         headers: { 
                             "Content-Type": "application/json", 
-                            "Authorization": "Bearer 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"
+                            "Authorization": `Bearer ${apiKey}` 
                         },
                         body: JSON.stringify({
                             model: "llama3-8b-8192",
                             messages: [
-                                {role: "system", content: "Sen motive edici fitness koçu Atlas'sın. Türkçe konuş, kısa ve öz cevap ver."},
+                                {role: "system", content: "Sen profesyonel fitness koçu Atlas'sın. Kısa cevap ver."},
                                 {role: "user", content: userVal}
                             ]
                         })
                     });
                     
                     const data = await res.json();
-                    
-                    if (data && data.choices && data.choices[0]) {
-                        const content = data.choices[0].message.content;
-                        setMsgs(prev => [...prev, {r: "a", t: content}]);
-                    } else {
-                        throw new Error("API boş döndü");
-                    }
+                    setMsgs(prev => [...prev, {r: "a", t: data.choices[0].message.content}]);
                 } catch (e) {
-                    console.error(e);
-                    setMsgs(prev => [...prev, {r: "a", t: "Hata oluştu ama ben buradayım. Tekrar dener misin?"}]);
+                    setMsgs(prev => [...prev, {r: "a", t: "Bağlantı hatası. Vercel Ayarlarını ve API Key'i kontrol et!"}]);
                 } finally {
                     setLoading(false);
                 }
@@ -77,28 +68,18 @@
 
             return (
                 <div className="app">
-                    <div className="header">ATLAS ⚡ v1.1</div>
-                    <div className="chat" ref={chatRef}>
-                        {msgs.map((m, i) => (
-                            <div key={i} className={`msg ${m.r === 'a' ? 'atlas' : 'user'}`}>{m.t}</div>
-                        ))}
-                        {loading && <div className="loading">Atlas analiz ediyor...</div>}
+                    <div className="header">ATLAS ⚡ SECURE</div>
+                    <div className="chat">
+                        {msgs.map((m, i) => <div key={i} className={`msg ${m.r === 'a' ? 'atlas' : 'user'}`}>{m.t}</div>)}
                     </div>
                     <div className="input-box">
-                        <input 
-                            value={val} 
-                            onChange={e => setVal(e.target.value)} 
-                            onKeyDown={e => e.key === 'Enter' && send()} 
-                            placeholder="Mesajını yaz..." 
-                        />
+                        <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Mesaj..." />
                         <button onClick={send}>GÖNDER</button>
                     </div>
                 </div>
             );
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
