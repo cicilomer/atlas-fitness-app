@@ -3,78 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atlas Fitness AI</title>
+    <title>Atlas Fitness AI - Ultra Stable</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { margin: 0; background: #050505; color: #eee; font-family: sans-serif; overflow: hidden; }
-        .app { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background: #000; border-left: 1px solid #111; border-right: 1px solid #111; }
-        .header { padding: 20px; text-align: center; border-bottom: 1px solid #111; color: #b8f243; font-weight: bold; font-size: 20px; }
-        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .msg { padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; font-size: 15px; }
+        body { margin: 0; background: #050505; color: #eee; font-family: sans-serif; height: 100vh; }
+        .app { max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; background: #000; border: 1px solid #111; }
+        .header { padding: 15px; text-align: center; border-bottom: 1px solid #111; color: #b8f243; font-weight: bold; }
+        .chat { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #050505; }
+        .msg { padding: 12px 16px; border-radius: 12px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
         .atlas { background: #111; border-left: 4px solid #b8f243; align-self: flex-start; }
         .user { background: #b8f243; color: #000; align-self: flex-end; font-weight: bold; }
-        .input-box { padding: 20px; display: flex; gap: 10px; background: #080808; border-top: 1px solid #111; }
+        .input-box { padding: 15px; display: flex; gap: 8px; background: #0a0a0a; border-top: 1px solid #111; }
         input { flex: 1; background: #151515; border: 1px solid #222; padding: 12px; color: #fff; border-radius: 8px; outline: none; }
-        button { background: #b8f243; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .hero { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
+        button { background: #b8f243; border: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .loading { opacity: 0.5; font-style: italic; font-size: 12px; color: #b8f243; }
     </style>
 </head>
 <body>
     <div id="root"></div>
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect, useRef } = React;
+
         function App() {
-            const [start, setStart] = useState(false);
-            const [msgs, setMsgs] = useState([{r: "a", t: "Selam! Ben Atlas. Hazırsan başlayalım. Bugün ne üzerine çalışıyoruz?"}]);
+            const [msgs, setMsgs] = useState([{r: "a", t: "Sistem güncellendi. Hazırım dostum, ne soracaksın?"}]);
             const [val, setVal] = useState("");
             const [loading, setLoading] = useState(false);
+            const chatRef = useRef(null);
+
+            useEffect(() => {
+                if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+            }, [msgs]);
 
             const send = async () => {
                 if(!val.trim() || loading) return;
-                const newMsgs = [...msgs, {r: "u", t: val}];
-                setMsgs(newMsgs); setVal(""); setLoading(true);
+                const userVal = val;
+                setMsgs(prev => [...prev, {r: "u", t: userVal}]);
+                setVal("");
+                setLoading(true);
+
                 try {
                     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json", "Authorization": "Bearer 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" },
+                        headers: { 
+                            "Content-Type": "application/json", 
+                            "Authorization": "Bearer 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" 
+                        },
                         body: JSON.stringify({
                             model: "llama3-8b-8192",
-                            messages: [{role: "system", content: "Sen profesyonel bir fitness koçusun. Adın Atlas. Kısa ve öz cevap ver."},
-                                       ...newMsgs.map(m => ({role: m.r === "u" ? "user" : "assistant", content: m.t}))]
+                            messages: [
+                                {role: "system", content: "Sen motive edici fitness koçu Atlas'sın. Türkçe konuş, kısa ve öz cevap ver."},
+                                {role: "user", content: userVal}
+                            ]
                         })
                     });
+                    
                     const data = await res.json();
-                    setMsgs(prev => [...prev, {r: "a", t: data.choices[0].message.content}]);
-                } catch (e) { setMsgs(prev => [...prev, {r: "a", t: "Bağlantı koptu ama antrenman devam ediyor! Tekrar dene."}]); }
-                finally { setLoading(false); }
+                    
+                    if (data && data.choices && data.choices[0]) {
+                        const content = data.choices[0].message.content;
+                        setMsgs(prev => [...prev, {r: "a", t: content}]);
+                    } else {
+                        throw new Error("API boş döndü");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    setMsgs(prev => [...prev, {r: "a", t: "Hata oluştu ama ben buradayım. Tekrar dener misin?"}]);
+                } finally {
+                    setLoading(false);
+                }
             };
-
-            if (!start) return (
-                <div className="app hero">
-                    <div style={{fontSize: '50px', marginBottom: '20px'}}>⚡</div>
-                    <h1 style={{color: '#b8f243', fontSize: '36px', margin: '0'}}>ATLAS AI</h1>
-                    <p style={{color: '#666'}}>DİSİPLİN KAZANDIRIR</p>
-                    <button style={{marginTop: '30px', padding: '15px 40px'}} onClick={() => setStart(true)}>SİSTEMİ BAŞLAT</button>
-                </div>
-            );
 
             return (
                 <div className="app">
-                    <div className="header">ATLAS ⚡</div>
-                    <div className="chat">
-                        {msgs.map((m, i) => <div key={i} className={`msg ${m.r === 'a' ? 'atlas' : 'user'}`}>{m.t}</div>)}
-                        {loading && <div className="msg atlas" style={{opacity: 0.5}}>Analiz ediyorum...</div>}
+                    <div className="header">ATLAS ⚡ v1.1</div>
+                    <div className="chat" ref={chatRef}>
+                        {msgs.map((m, i) => (
+                            <div key={i} className={`msg ${m.r === 'a' ? 'atlas' : 'user'}`}>{m.t}</div>
+                        ))}
+                        {loading && <div className="loading">Atlas analiz ediyor...</div>}
                     </div>
                     <div className="input-box">
-                        <input value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Mesaj..." />
+                        <input 
+                            value={val} 
+                            onChange={e => setVal(e.target.value)} 
+                            onKeyDown={e => e.key === 'Enter' && send()} 
+                            placeholder="Mesajını yaz..." 
+                        />
                         <button onClick={send}>GÖNDER</button>
                     </div>
                 </div>
             );
         }
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
